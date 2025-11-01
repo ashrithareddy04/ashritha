@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CycleGAN Style Transfer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .upload-section {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+        }
+
+        .file-input-label:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .filename-display {
+            margin-top: 10px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .style-selector {
+            margin: 30px 0;
+        }
+
+        .style-selector h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .style-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .style-btn {
+            padding: 15px 30px;
+            border: 3px solid #ddd;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.1em;
+            color: #333;
+            text-transform: capitalize;
+        }
+
+        .style-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .style-btn.selected {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .transfer-btn {
+            display: block;
+            margin: 30px auto;
+            padding: 15px 50px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .transfer-btn:hover:not(:disabled) {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .transfer-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .preview-section {
+            margin-top: 40px;
+            display: none;
+        }
+
+        .preview-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        .preview-box {
+            text-align: center;
+        }
+
+        .preview-box h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .preview-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading {
+            text-align: center;
+            margin: 30px 0;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8d7da;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .success-message {
+            color: #155724;
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #d4edda;
+            border-radius: 10px;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .preview-container {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 CycleGAN Style Transfer</h1>
+        <p class="subtitle">Transform your images with artistic styles of famous painters</p>
+
+        <div class="upload-section">
+            <div class="file-input-wrapper">
+                <input type="file" id="imageInput" accept="image/png,image/jpeg,image/jpg">
+                <label for="imageInput" class="file-input-label">📁 Choose Image</label>
+            </div>
+            <div class="filename-display" id="filenameDisplay"></div>
+        </div>
+
+        <div class="style-selector">
+            <h2>Select Artistic Style</h2>
+            <div class="style-buttons" id="styleButtons">
+                <!-- Style buttons will be populated dynamically -->
+            </div>
+        </div>
+
+        <button class="transfer-btn" id="transferBtn" disabled>✨ Apply Style Transfer</button>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="margin-top: 15px;">Processing your image...</p>
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <h2 style="text-align: center; margin-bottom: 20px;">Results</h2>
+            <div class="preview-container">
+                <div class="preview-box">
+                    <h3>Original Image</h3>
+                    <img id="originalPreview" alt="Original">
+                </div>
+                <div class="preview-box">
+                    <h3>Styled Image</h3>
+                    <img id="styledPreview" alt="Styled">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let selectedStyle = null;
+
+        // Load available styles
+        fetch('/styles')
+            .then(response => response.json())
+            .then(data => {
+                const styleButtons = document.getElementById('styleButtons');
+                data.styles.forEach(style => {
+                    const btn = document.createElement('button');
+                    btn.className = 'style-btn';
+                    btn.textContent = style;
+                    btn.onclick = () => selectStyle(style, btn);
+                    styleButtons.appendChild(btn);
+                });
+            });
+
+        // Handle file selection
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('filenameDisplay').textContent = `Selected: ${file.name}`;
+                updateTransferButton();
+                
+                // Show original preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('originalPreview').src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle style selection
+        function selectStyle(style, btn) {
+            // Remove selection from all buttons
+            document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('selected'));
+            // Add selection to clicked button
+            btn.classList.add('selected');
+            selectedStyle = style;
+            updateTransferButton();
+        }
+
+        // Update transfer button state
+        function updateTransferButton() {
+            const btn = document.getElementById('transferBtn');
+            btn.disabled = !(selectedFile && selectedStyle);
+        }
+
+        // Handle style transfer
+        document.getElementById('transferBtn').addEventListener('click', async function() {
+            if (!selectedFile || !selectedStyle) return;
+
+            // Hide messages
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('previewSection').style.display = 'none';
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            this.disabled = true;
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('style', selectedStyle);
+
+            try {
+                const response = await fetch('/transfer', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Show success message
+                    document.getElementById('successMessage').textContent = 'Style transfer completed successfully!';
+                    document.getElementById('successMessage').style.display = 'block';
+
+                    // Display styled image
+                    document.getElementById('styledPreview').src = `/result/${result.output_image}`;
+                    document.getElementById('previewSection').style.display = 'block';
+                } else {
+                    // Show error message
+                    document.getElementById('errorMessage').textContent = result.error || 'An error occurred';
+                    document.getElementById('errorMessage').style.display = 'block';
+                }
+            } catch (error) {
+                document.getElementById('errorMessage').textContent = `Error: ${error.message}`;
+                document.getElementById('errorMessage').style.display = 'block';
+            } finally {
+                // Hide loading
+                document.getElementById('loading').style.display = 'none';
+                this.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
