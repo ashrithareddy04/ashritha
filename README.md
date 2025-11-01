@@ -93,11 +93,47 @@ The application can be configured through Flask app settings:
 - `MAX_CONTENT_LENGTH`: Maximum upload file size (default: 16MB)
 - `ALLOWED_EXTENSIONS`: Supported image formats
 
+### Environment Variables
+
+- `FLASK_DEBUG`: Set to `true` to enable debug mode (only for development, never in production)
+
+## Security Features
+
+The application implements several security measures:
+
+- **Path Traversal Prevention**: Filenames are validated and sanitized
+- **File Type Validation**: Only allowed image formats (PNG, JPG, JPEG) are accepted
+- **File Size Limits**: Maximum upload size is enforced (16MB)
+- **Debug Mode Control**: Debug mode is disabled by default for production safety
+- **Error Handling**: Stack traces are not exposed to end users
+- **Secure File Paths**: All file operations verify paths stay within intended directories
+
 ## Notes
 
 - The current implementation uses a randomly initialized model for demonstration purposes
 - For production use, pre-trained CycleGAN weights should be downloaded and loaded
 - GPU acceleration will be used automatically if CUDA is available
+- For production deployment, use a WSGI server like Gunicorn instead of Flask's development server
+
+## Production Deployment
+
+For production environments:
+
+1. Set up a WSGI server:
+```bash
+pip install gunicorn
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
+```
+
+2. Use environment variables for configuration:
+```bash
+export FLASK_DEBUG=false
+```
+
+3. Set up proper logging and monitoring
+4. Use HTTPS with SSL certificates
+5. Implement rate limiting for API endpoints
+6. Set up proper file cleanup for the uploads directory
 
 ## Future Enhancements
 
