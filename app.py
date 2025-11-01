@@ -84,7 +84,9 @@ def transfer():
             return jsonify({'error': 'Invalid file type. Only PNG, JPG, and JPEG are allowed'}), 400
             
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        # Log the error for debugging but don't expose stack trace to user
+        app.logger.error(f"Style transfer error: {str(e)}")
+        return jsonify({'error': 'An error occurred during style transfer. Please try again.'}), 500
 
 
 @app.route('/result/<filename>')
@@ -110,4 +112,8 @@ def get_result(filename):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Disable debug mode in production for security
+    # Set debug=True only for local development
+    import os
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    app.run(debug=debug_mode, host='0.0.0.0', port=5000)
