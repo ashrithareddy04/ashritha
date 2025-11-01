@@ -90,9 +90,21 @@ def transfer():
 @app.route('/result/<filename>')
 def get_result(filename):
     """Serve the styled image"""
+    # Validate filename to prevent path traversal attacks
+    filename = secure_filename(filename)
     file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    
+    # Additional security check: ensure resolved path is within upload folder
+    upload_folder = os.path.abspath(app.config['UPLOAD_FOLDER'])
+    requested_path = os.path.abspath(file_path)
+    if not requested_path.startswith(upload_folder):
+        return jsonify({'error': 'Invalid file path'}), 403
+    
     if os.path.exists(file_path):
-        return send_file(file_path, mimetype='image/jpeg')
+        # Determine correct mimetype based on file extension
+        ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+        mimetype = 'image/jpeg' if ext in ['jpg', 'jpeg'] else 'image/png'
+        return send_file(file_path, mimetype=mimetype)
     else:
         return jsonify({'error': 'File not found'}), 404
 
